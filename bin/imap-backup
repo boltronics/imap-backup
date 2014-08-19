@@ -9,6 +9,7 @@ require 'imap/backup'
 KNOWN_COMMANDS = [
   {:name => 'setup',   :help => 'Create/edit the configuration file'},
   {:name => 'backup',  :help => 'Do the backup (default)'},
+  {:name => 'restore', :help => 'Restore emails to server'},
   {:name => 'folders', :help => 'List folders for all (or selected) accounts'},
   {:name => 'status',  :help => 'List count of non backed-up emails per folder'},
   {:name => 'help',    :help => 'Show usage'},
@@ -65,6 +66,10 @@ when 'setup'
 when 'backup'
   configuration.each_connection do |connection|
     connection.run_backup
+  end
+when 'restore'
+  configuration.each_connection do |connection|
+    connection.restore
   end
 when 'folders'
   configuration.each_connection do |connection|

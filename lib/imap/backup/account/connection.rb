@@ -43,6 +43,12 @@ module Imap::Backup
       end
     end
 
+    def restore
+      each_folder do |folder, serializer|
+        Uploader.new(folder, serializer).run
+      end
+    end
+
     def disconnect
       imap.disconnect
     end

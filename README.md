@@ -99,7 +99,7 @@ $ imap-backup
 
 Alternatively, add it to your crontab.
 
-# Result
+## Result
 
 Each folder is saved to an mbox file.
 Alongside each mbox is a file with extension '.imap', which lists the source IMAP
@@ -121,6 +121,11 @@ If you have problems:
   "debug": true
 }
 ```
+
+# Restore
+
+All missing messages are pushed to the IMAP server.
+Existing messages are left unchanged.
 
 # Other Usage
 
