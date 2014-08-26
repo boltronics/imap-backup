@@ -25,7 +25,7 @@ module Imap::Backup
 
     def uids
       imap.examine(name)
-      imap.uid_search(['ALL']).sort
+      imap.uid_search(['ALL']).sort.map(&:to_s)
     rescue Net::IMAP::NoResponseError => e
       Imap::Backup.logger.warn "Folder '#{name}' does not exist"
       []

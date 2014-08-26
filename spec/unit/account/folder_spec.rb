@@ -11,7 +11,7 @@ describe Imap::Backup::Account::Folder do
   subject { described_class.new(connection, 'my_folder') }
 
   context '#uids' do
-    let(:uids) { [5678, 123] }
+    let(:uids) { %w(5678 123) }
 
     before { allow(imap).to receive(:uid_search).and_return(uids) }
 
