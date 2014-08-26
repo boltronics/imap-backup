@@ -86,8 +86,9 @@ when 'status'
     puts connection.username
     folders = connection.status
     folders.each do |f|
-      missing_locally = f[:remote] - f[:local]
-      puts "#{f[:name]}: #{missing_locally.size}"
+      missing_locally = (f[:remote] - f[:local]).size
+      missing_remotely = (f[:local] - f[:remote]).size
+      puts "#{f[:name]}: #{missing_locally} to download, #{missing_remotely} to restore"
     end
   end
 end
