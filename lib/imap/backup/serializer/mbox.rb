@@ -12,8 +12,6 @@ module Imap::Backup
       assert_files
     end
 
-    # TODO: cleanup locks, close file handles
-
     def uids
       return @uids if @uids
 
@@ -91,14 +89,6 @@ module Imap::Backup
     def imap_pathname
       filename = @folder + '.imap'
       File.join(@path, filename)
-    end
-
-    def lock
-      # lock mbox and imap files
-      # create both empty if missing
-    end
-
-    def unlock
     end
   end
 end
