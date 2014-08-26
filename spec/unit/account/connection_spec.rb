@@ -80,7 +80,7 @@ describe Imap::Backup::Account::Connection do
 
     before do
       allow(Imap::Backup::Account::Folder).to receive(:new).and_return(folder)
-      allow(Imap::Backup::Serializer::Directory).to receive(:new).and_return(serializer)
+      allow(Imap::Backup::Serializer::Mbox).to receive(:new).and_return(serializer)
     end
 
     it 'should return the names of folders' do
