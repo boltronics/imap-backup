@@ -11,7 +11,7 @@ module Email::Mboxrd
       @supplied_body.force_encoding('binary') if RUBY_VERSION >= '1.9.0'
     end
 
-    def to_s
+    def to_serialized
       'From ' + from + "\n" + mboxrd_body + "\n"
     end
 
