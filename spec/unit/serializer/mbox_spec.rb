@@ -114,5 +114,60 @@ describe Imap::Backup::Serializer::Mbox do
         end
       end
     end
+
+    describe '#load' do
+      let(:ids) { ['foo', uid] }
+      let(:uid) { '1' }
+
+      context 'with missing uids' do
+        let(:ids) { ['999'] }
+
+        it 'returns nil' do
+          expect(subject.load(uid)).to be_nil
+        end
+      end
+
+      context 'with uids present in the imap file' do
+        let(:mbox_file) { double(File) }
+        let(:message) { double(Email::Mboxrd::Message) }
+        let(:first_message) { "From You\nDelivered-To: me@example.com\n" }
+        let(:second_message) { "From Me\nDelivered-To: you@example.com\n" }
+        let(:mbox_lines) { (first_message + second_message).split("\n") }
+
+        before do
+          allow(File).to receive(:open).with(mbox_pathname) { |&blk| blk.call(mbox_file) }
+          allow(mbox_file).to receive(:gets).and_return(*mbox_lines, nil)
+          allow(Email::Mboxrd::Message).to receive(:from_serialized).with(second_message).and_return(message)
+        end
+
+        it 'returns the message' do
+          expect(subject.load(uid)).to eq(message)
+        end
+      end
+    end
+
+    describe '#update_uid' do
+      let(:ids) { ['8', '9'] }
+      let(:imap_output) { "8\n99\n" }
+      let(:imap_file) { double('File - imap', write: nil, close: nil) }
+
+      before do
+        allow(File).to receive(:open).with(imap_pathname, 'wb').and_return(imap_file)
+      end
+
+      before { subject.update_uid('9', '99') }
+
+      it 'saves the modified imap file' do
+        expect(imap_file).to have_received(:write).with(imap_output)
+      end
+
+      context 'with unknown uids' do
+        let(:ids) { ['8', '10'] }
+
+        it 'does nothing' do
+          expect(imap_file).to_not have_received(:write)
+        end
+      end
+    end
   end
 end

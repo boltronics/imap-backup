@@ -51,6 +51,25 @@ module Imap::Backup
       end
     end
 
+    def load(uid)
+      message_index = uids.find_index(uid)
+      return nil if message_index.nil?
+      load_nth(message_index)
+    end
+
+    def update_uid(old, new)
+      index = uids.find_index(old)
+      return nil if index.nil?
+      uids[index] = new
+      imap = nil
+      begin
+        imap = File.open(imap_pathname, 'wb')
+        imap.write uids.join("\n") + "\n"
+      ensure
+        imap.close if imap
+      end
+    end
+
     private
 
     def assert_files
@@ -89,6 +108,32 @@ module Imap::Backup
     def imap_pathname
       filename = @folder + '.imap'
       File.join(@path, filename)
+    end
+
+    def load_nth(index)
+      each_mbox_message.with_index do |raw, i|
+        next unless i == index
+        return Email::Mboxrd::Message.from_serialized(raw)
+      end
+      nil
+    end
+
+    def each_mbox_message
+      Enumerator.new do |e|
+        File.open(mbox_pathname) do |f|
+          lines = []
+
+          while line = f.gets
+            if line.start_with?('From ')
+              e.yield lines.join("\n") + "\n" if lines.count > 0
+              lines = [line]
+            else
+              lines << line
+            end
+          end
+          e.yield lines.join("\n") + "\n" if lines.count > 0
+        end
+      end
     end
   end
 end

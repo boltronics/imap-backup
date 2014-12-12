@@ -1,15 +1,46 @@
 # encoding: utf-8
 require 'spec_helper'
 
-describe Imap::Backup::Uploader do
-  let(:imap) { double(Net::IMAP, append: :bar) }
+module Imap::Backup
+  describe Uploader do
+    let(:folder) { double(Account::Folder, uids: remote_uids, append: new_uid) }
+    let(:serializer) { double(Serializer, uids: local_uids, update_uid: nil) }
+    let(:local_uids) { [old_uid] }
+    let(:remote_uids) { [] }
+    let(:old_uid) { 1 }
+    let(:new_uid) { 999 }
+    let(:message_1) { double }
 
-  it 'skips uids already on the server'
+    subject { described_class.new(folder, serializer) }
 
-  it 'uploads missing messages' do
-    # set the date
-    expect(imap).to have_received(:append).with(:foo)
+    before do
+      allow(serializer).to receive(:load).with(old_uid).and_return(message_1)
+      subject.run
+    end
+
+    it 'uploads missing messages' do
+      expect(folder).to have_received(:append).with(message_1)
+    end
+
+    it 'updates the local uid' do
+      expect(serializer).to have_received(:update_uid).with(old_uid, new_uid)
+    end
+
+    context 'uids already on the server' do
+      let(:local_uids) { [1] }
+      let(:remote_uids) { [1] }
+
+      it 'does nothing' do
+        expect(folder).to_not have_received(:append)
+      end
+    end
+
+    context 'if the serialized message cannot be loaded' do
+      let(:message_1) { nil }
+
+      it 'does nothing' do
+        expect(folder).to_not have_received(:append)
+      end
+    end
   end
-
-  it 'updates the local uid'
 end
