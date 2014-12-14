@@ -58,8 +58,8 @@ describe Imap::Backup::Serializer::Mbox do
     subject { described_class.new(base_path, 'my/folder') }
 
     context '#uids' do
-      it 'returns the backed-up uids as sorted integers' do
-        expect(subject.uids).to eq(ids.map(&:to_i).sort)
+      it 'returns the backed-up uids as integers' do
+        expect(subject.uids).to eq(serialized_uids.map(&:to_i))
       end
 
       context 'if the mbox does not exist' do
