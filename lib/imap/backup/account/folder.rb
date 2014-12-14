@@ -42,7 +42,7 @@ module Imap::Backup
     end
 
     def append(message)
-      response = imap.append(folder, message.to_s, nil, message.date)
+      response = imap.append(name, message.to_s, nil, message.date)
       extract_uid(response)
     end
 
