@@ -49,10 +49,10 @@ describe Imap::Backup::Serializer::Mbox do
   end
 
   context 'instance methods' do
-    let(:ids) { %w(3 2 1) }
+    let(:serialized_uids) { %w(3 2 1) }
 
     before do
-      allow(CSV).to receive(:foreach) { |&b| ids.each { |id| b.call [id] } }
+      allow(CSV).to receive(:foreach) { |&b| serialized_uids.each { |id| b.call [id] } }
     end
 
     subject { described_class.new(base_path, 'my/folder') }
@@ -116,11 +116,11 @@ describe Imap::Backup::Serializer::Mbox do
     end
 
     describe '#load' do
-      let(:ids) { ['foo', uid] }
-      let(:uid) { '1' }
+      let(:serialized_uids) { ['666', uid.to_s] }
+      let(:uid) { 1 }
 
       context 'with missing uids' do
-        let(:ids) { ['999'] }
+        let(:serialized_uids) { ['999'] }
 
         it 'returns nil' do
           expect(subject.load(uid)).to be_nil
@@ -147,7 +147,7 @@ describe Imap::Backup::Serializer::Mbox do
     end
 
     describe '#update_uid' do
-      let(:ids) { ['8', '9'] }
+      let(:serialized_uids) { ['8', '9'] }
       let(:imap_output) { "8\n99\n" }
       let(:imap_file) { double('File - imap', write: nil, close: nil) }
 
@@ -162,7 +162,7 @@ describe Imap::Backup::Serializer::Mbox do
       end
 
       context 'with unknown uids' do
-        let(:ids) { ['8', '10'] }
+        let(:serialized_uids) { ['8', '10'] }
 
         it 'does nothing' do
           expect(imap_file).to_not have_received(:write)

@@ -58,9 +58,9 @@ module Imap::Backup
     end
 
     def update_uid(old, new)
-      index = uids.find_index(old)
+      index = uids.find_index(old.to_i)
       return nil if index.nil?
-      uids[index] = new
+      uids[index] = new.to_i
       imap = nil
       begin
         imap = File.open(imap_pathname, 'wb')
