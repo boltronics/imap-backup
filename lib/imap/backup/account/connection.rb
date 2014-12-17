@@ -12,6 +12,7 @@ module Imap::Backup
       @local_path = options[:local_path]
       @backup_folders = options[:folders]
       @server = options[:server]
+      @server_options = options[:server_options]
       @folders = nil
     end
 
@@ -98,7 +99,7 @@ module Imap::Backup
     end
 
     def provider_options
-      provider.options
+      @server_options || provider.options
     end
 
     def provider_root
