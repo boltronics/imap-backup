@@ -8,7 +8,9 @@ module RSpecFeatureHelpers
     Rake.application.invoke_task 'test:email_server:stop'
   end
 
-  def send_email(subject: nil, body: nil)
+  def send_email(options)
+    subject = options[:subject]
+    body = options[:body]
     message = <<-EOT
 From: #{username}
 Subject: #{subject}

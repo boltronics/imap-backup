@@ -4,7 +4,9 @@ RSpec.describe 'backup', type: :feature do
   before { start_email_server }
   after { stop_email_server }
 
-  def message_as_mbox_entry(subject: nil, body: nil)
+  def message_as_mbox_entry(options)
+    subject = options[:subject]
+    body = options[:body]
     <<-EOT
 From user@example.com 
 From: user@example.com
