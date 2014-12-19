@@ -1,9 +1,6 @@
 require 'feature_helper'
 
 RSpec.describe 'backup', type: :feature do
-  before { start_email_server }
-  after { stop_email_server }
-
   let(:local_path) { Dir.mktmpdir(nil, 'tmp') }
   let(:msg1) { {subject: 'Test 1', body: "body 1\nHi"} }
   let(:msg2) { {subject: 'Test 2', body: "body 2"} }
@@ -13,8 +10,11 @@ RSpec.describe 'backup', type: :feature do
 
   let(:inbox_mbox_path) { File.join(local_path, 'INBOX.mbox') }
   let(:inbox_mbox_content) { File.read(inbox_mbox_path) }
+  let(:inbox_imap_path) { File.join(local_path, 'INBOX.imap') }
+  let(:inbox_imap_content) { File.read(inbox_imap_path) }
 
   before do
+    start_email_server
     send_email msg1
     send_email msg2
 
@@ -30,6 +30,7 @@ RSpec.describe 'backup', type: :feature do
   end
 
   after do
+    stop_email_server
     FileUtils.rm_rf local_path
   end
 
