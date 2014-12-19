@@ -57,7 +57,11 @@ module TestEmailServerHelpers
 
   def stop_server
     pid = @config.delete(:pid)
-    Process.kill('TERM', pid)
+    fork do
+      Process.kill('TERM', pid)
+      Kernel.exit!
+    end
+    Process.waitpid pid
   rescue Errno::ESRCH
     # It doesn't matter if the process was already dead
   end
