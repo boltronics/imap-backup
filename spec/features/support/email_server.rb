@@ -1,11 +1,10 @@
 module RSpecFeatureHelpers
   def start_email_server
-    Rake.application.invoke_task 'test:email_server:start'
-    sleep 0.1
+    Rake.application['test:email_server:start'].execute
   end
 
   def stop_email_server
-    Rake.application.invoke_task 'test:email_server:stop'
+    Rake.application['test:email_server:stop'].execute
   end
 
   def send_email(options)

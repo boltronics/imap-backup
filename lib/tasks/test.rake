@@ -72,21 +72,22 @@ namespace :test do
     include TestEmailServerHelpers
 
     desc 'Start the email server process'
-    task start: [:config] do
+    task :start do
+      load_config
       create_working_directory
       fork_server
       save_config
+      log = File.join(@config[:directory], 'imap.log')
+      sleep 0.01 while not File.exist?(log)
+      sleep 0.1 while not File.read(log).include?('open server')
     end
 
     desc 'Stop the email server process'
-    task stop: [:config] do
+    task :stop do
+      load_config
       stop_server
       delete_working_directory
       save_config
-    end
-
-    task :config do
-      load_config
     end
 
     directory 'tmp'
