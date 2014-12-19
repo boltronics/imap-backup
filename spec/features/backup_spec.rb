@@ -37,4 +37,9 @@ RSpec.describe 'backup', type: :feature do
   it 'downloads messages' do
     expect(inbox_mbox_content).to eq(messages_as_mbox)
   end
+
+  it 'records IMAP ids' do
+    expected = /\d+\n\d+/
+    expect(inbox_imap_content).to match(expected)
+  end
 end
