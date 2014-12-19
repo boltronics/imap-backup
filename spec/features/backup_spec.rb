@@ -4,19 +4,6 @@ RSpec.describe 'backup', type: :feature do
   before { start_email_server }
   after { stop_email_server }
 
-  def message_as_mbox_entry(options)
-    subject = options[:subject]
-    body = options[:body]
-    <<-EOT
-From user@example.com 
-From: user@example.com
-Subject: #{subject}
-
-#{body}
-
-    EOT
-  end
-
   let(:local_path) { Dir.mktmpdir(nil, 'tmp') }
   let(:msg1) { {subject: 'Test 1', body: "body 1\nHi"} }
   let(:msg2) { {subject: 'Test 2', body: "body 2"} }
