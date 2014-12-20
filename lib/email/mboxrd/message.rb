@@ -37,7 +37,10 @@ module Email::Mboxrd
 
     def mboxrd_body
       return @mboxrd_body if @mboxrd_body
-      @mboxrd_body = supplied_body.gsub(/\n(>*From)/, "\n>\\1")
+      # The mboxrd format requires that lines starting with 'From'
+      # be prefixed with a '>' so that any remaining lines which start with
+      # 'From ' can be taken as the beginning of messages.
+      @mboxrd_body = supplied_body.gsub(/(^|\n)(>*From)/, "\\1>\\2")
       @mboxrd_body += "\n" unless @mboxrd_body.end_with?("\n")
       @mboxrd_body
     end

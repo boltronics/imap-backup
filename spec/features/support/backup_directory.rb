@@ -4,7 +4,7 @@ module BackupDirectoryHelpers
     body = options[:body]
     <<-EOT
 From user@example.com 
-From: user@example.com
+> From: user@example.com
 Subject: #{subject}
 
 #{body}
