@@ -9,4 +9,5 @@ shared_context 'imap-backup connection' do
       server_options: {port: 1430},
     }
   end
+  let(:connection) { Imap::Backup::Account::Connection.new(connection_options) }
 end

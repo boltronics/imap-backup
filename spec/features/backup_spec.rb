@@ -17,7 +17,6 @@ RSpec.describe 'backup', type: :feature do
     send_email msg1
     send_email msg2
 
-    connection = Imap::Backup::Account::Connection.new(connection_options)
     connection.run_backup
   end
 
