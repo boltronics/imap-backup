@@ -10,6 +10,8 @@ RSpec.describe 'restore', type: :feature do
     start_email_server
     write_backup_email msg1
     write_backup_email msg2
+
+    connection.restore
   end
 
   after do
@@ -18,6 +20,10 @@ RSpec.describe 'restore', type: :feature do
   end
 
   it 'restores' do
-    connection.restore
+    expect(server_messages.count).to eq(2)
+  end
+
+  it 'updates local uids' do
+    expect(inbox_imap_content).to eq(server_uids.join("\n") + "\n")
   end
 end

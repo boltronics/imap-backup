@@ -9,9 +9,6 @@ RSpec.describe 'backup', type: :feature do
     message_as_mbox_entry(msg1) + message_as_mbox_entry(msg2)
   end
 
-  let(:inbox_mbox_content) { File.read(inbox_mbox_path) }
-  let(:inbox_imap_content) { File.read(inbox_imap_path) }
-
   before do
     start_email_server
     send_email msg1

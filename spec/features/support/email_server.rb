@@ -1,4 +1,6 @@
 module EmailServerHelpers
+  REQUESTED_ATTRIBUTES = ['RFC822', 'FLAGS', 'INTERNALDATE']
+
   def start_email_server
     Rake.application['test:email_server:start'].execute
   end
@@ -17,7 +19,22 @@ Subject: #{subject}
 #{body}
     EOT
 
-    imap.append('INBOX', message, nil, nil)
+    imap.append(folder_name, message, nil, nil)
+  end
+
+  def folder_name
+    'INBOX'
+  end
+
+  def server_uids
+    imap.examine(folder_name)
+    imap.uid_search(['ALL']).sort
+  end
+
+  def server_messages
+    server_uids.map do |uid|
+      imap.uid_fetch([uid], REQUESTED_ATTRIBUTES)[0][1]
+    end
   end
 
   def username
@@ -25,9 +42,10 @@ Subject: #{subject}
   end
 
   def imap
-    imap = Net::IMAP.new('localhost', port: '1430')
-    imap.login(username, 'password')
-    imap
+    return @imap if @imap
+    @imap = Net::IMAP.new('localhost', port: '1430')
+    @imap.login(username, 'password')
+    @imap
   end
 end
 

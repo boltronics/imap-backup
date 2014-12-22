@@ -28,6 +28,14 @@ Subject: #{subject}
   def inbox_imap_path
     File.join(local_backup_path, 'INBOX.imap')
   end
+
+  def inbox_mbox_content
+    File.read(inbox_mbox_path)
+  end
+
+  def inbox_imap_content
+    File.read(inbox_imap_path)
+  end
 end
 
 RSpec.configure do |config|
