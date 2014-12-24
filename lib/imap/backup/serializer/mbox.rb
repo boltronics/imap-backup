@@ -6,48 +6,44 @@ module Imap::Backup
   module Serializer; end
 
   class Serializer::Mbox < Serializer::Base
+    CURRENT_VERSION = 1
+
     def initialize(path, folder)
       super
       create_containing_directory
-      assert_files
+      check_files
     end
 
     def uids
       return @uids if @uids
 
       @uids = []
-      return @uids if not exist?
 
-      CSV.foreach(imap_pathname) do |row|
-        @uids << row[0]
-      end
-      @uids = @uids.map(&:to_i)
-      @uids
+      imap = load_imap
+      return @uids if imap.nil?
+
+      @uids = imap[:uids].map(&:to_i)
     end
 
     def save(uid, message)
-      uid = uid.to_s
+      uid = uid.to_i
       if uids.include?(uid)
         Imap::Backup.logger.debug "[#{folder}] message #{uid} already downloaded - skipping"
         return
       end
 
-      # invalidate cache
-      @uids = nil
-
       body = message['RFC822']
       mboxrd_message = Email::Mboxrd::Message.new(body)
-      mbox = imap = nil
+      mbox = nil
       begin
         mbox = File.open(mbox_pathname, 'ab')
-        imap = File.open(imap_pathname, 'ab')
         mbox.write mboxrd_message.to_serialized
-        imap.write uid + "\n"
+        @uids << uid
+        write_imap_file
       rescue => e
         Imap::Backup.logger.warn "[#{folder}] failed to save message #{uid}:\n#{body}. #{e}"
       ensure
         mbox.close if mbox
-        imap.close if imap
       end
     end
 
@@ -59,25 +55,12 @@ module Imap::Backup
 
     def update_uid(old, new)
       index = uids.find_index(old.to_i)
-      return nil if index.nil?
+      return if index.nil?
       uids[index] = new.to_i
-      imap = nil
-      begin
-        imap = File.open(imap_pathname, 'wb')
-        imap.write uids.join("\n") + "\n"
-      ensure
-        imap.close if imap
-      end
+      write_imap_file
     end
 
     private
-
-    def assert_files
-      mbox = mbox_exist?
-      imap = imap_exist?
-      raise '.imap file missing' if mbox and not imap
-      raise '.mbox file missing' if imap and not mbox
-    end
 
     def create_containing_directory
       mbox_relative_path = File.dirname(mbox_relative_pathname)
@@ -85,8 +68,51 @@ module Imap::Backup
       Utils.make_folder(@path, mbox_relative_path, Serializer::DIRECTORY_PERMISSIONS)
     end
 
-    def exist?
-      mbox_exist? and imap_exist?
+    def check_files
+      imap = load_imap
+      delete =
+        case
+        when imap.nil?
+          true
+        when imap[:version] != CURRENT_VERSION
+          true
+        when (not mbox_exist?)
+          true
+        when (not imap.has_key?(:uids))
+          true
+        when (not imap[:uids].is_a?(Array))
+          true
+        else
+          false
+        end
+      delete_files if delete
+    end
+
+    def load_imap
+      return nil unless imap_looks_like_json?
+      JSON.parse(File.read(imap_pathname), :symbolize_names => true)
+    rescue JSON::ParserError
+      nil
+    end
+
+    def imap_looks_like_json?
+      return false unless imap_exist?
+      content = File.read(imap_pathname)
+      content.start_with?('{')
+    end
+
+    def write_imap_file
+      imap_data = {
+        version: CURRENT_VERSION,
+        uids: uids,
+      }
+      content = imap_data.to_json
+      File.open(imap_pathname, 'w') { |f| f.write content }
+    end
+
+    def delete_files
+      File.unlink(imap_pathname) if imap_exist?
+      File.unlink(mbox_pathname) if mbox_exist?
     end
 
     def mbox_exist?

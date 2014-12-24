@@ -18,7 +18,9 @@ Subject: #{subject}
   end
 
   def add_backup_uid(uid)
-    File.open(inbox_imap_path, 'a') { |f| f.puts uid }
+    imap = load_or_create_imap
+    imap[:uids] << uid
+    File.open(inbox_imap_path, 'w') { |f| f.puts imap.to_json }
   end
 
   def inbox_mbox_path
@@ -33,8 +35,16 @@ Subject: #{subject}
     File.read(inbox_mbox_path)
   end
 
-  def inbox_imap_content
+  def read_inbox_imap
     File.read(inbox_imap_path)
+  end
+
+  def load_or_create_imap
+    if File.exist?(inbox_imap_path)
+      JSON.parse(read_inbox_imap, :symbolize_names => true)
+    else
+      {version: 1, uids: []}
+    end
   end
 end
 

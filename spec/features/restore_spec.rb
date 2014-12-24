@@ -3,8 +3,12 @@ require 'feature_helper'
 RSpec.describe 'restore', type: :feature do
   include_context 'imap-backup connection'
 
-  let(:msg1) { {uid: 123, subject: 'Test 1', body: "body 1\nHi"} }
-  let(:msg2) { {uid: 345, subject: 'Test 2', body: "body 2"} }
+  let(:uid1) { 123 }
+  let(:uid2) { 345 }
+  let(:msg1) { {uid: uid1, subject: 'Test 1', body: "body 1\nHi"} }
+  let(:msg2) { {uid: uid2, subject: 'Test 2', body: "body 2"} }
+  let(:post_restore_imap_data) { {version: 1, uids: [1, 2] } }
+  let(:post_restore_imap_content) { post_restore_imap_data.to_json }
 
   before do
     start_email_server
@@ -24,6 +28,6 @@ RSpec.describe 'restore', type: :feature do
   end
 
   it 'updates local uids' do
-    expect(inbox_imap_content).to eq(server_uids.join("\n") + "\n")
+    expect(read_inbox_imap).to eq(post_restore_imap_content)
   end
 end
