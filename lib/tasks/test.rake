@@ -39,8 +39,8 @@ module TestEmailServerHelpers
 
   def fork_server
     pid = fork do
+      SimpleCov.at_exit { }
       run_server
-      Kernel.exit!
     end
     @config[:pid] = pid
   end
@@ -58,8 +58,8 @@ module TestEmailServerHelpers
   def stop_server
     pid = @config.delete(:pid)
     fork do
+      SimpleCov.at_exit { }
       Process.kill('TERM', pid)
-      Kernel.exit!
     end
     Process.waitpid pid
   rescue Errno::ESRCH
