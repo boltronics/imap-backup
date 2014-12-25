@@ -3,6 +3,10 @@
 require 'spec_helper'
 
 describe Imap::Backup::Serializer::Mbox do
+  def imap_data(uids)
+    {version: 1, uids: uids}
+  end
+
   let(:stat) { double('File::Stat', :mode => 0700) }
   let(:base_path) { '/base/path' }
   let(:imap_folder) { 'my/folder' }
@@ -11,7 +15,6 @@ describe Imap::Backup::Serializer::Mbox do
   let(:mbox_exists) { true }
   let(:imap_pathname) { File.join(base_path, imap_folder + '.imap') }
   let(:imap_exists) { true }
-  let(:imap_content) { '{}' }
   let(:serialized_uids) { [3, 2, 1] }
   let(:imap_content) { imap_data(serialized_uids).to_json }
 
@@ -37,8 +40,16 @@ describe Imap::Backup::Serializer::Mbox do
       end
     end
 
-    context 'mbox and imap files' do
-      context "if mbox exists and imap doesn't" do
+    context "when the mbox doesn't exist" do
+      let(:mbox_exists) { false }
+
+      it 'deletes the imap file' do
+        expect(File).to have_received(:unlink).with(imap_pathname)
+      end
+    end
+
+    context "when the mbox exists" do
+      context "when the imap doesn't exist" do
         let(:imap_exists) { false }
 
         it 'deletes the mbox' do
@@ -46,18 +57,29 @@ describe Imap::Backup::Serializer::Mbox do
         end
       end
 
-      context "if imap is a JSON file and mbox doesn't exist" do
-        let(:mbox_exists) { false }
+      context "when the imap isn't JSON" do
+        let(:imap_content) { 'xxx' }
 
-        it 'deletes the imap file' do
-          expect(File).to have_received(:unlink).with(imap_pathname)
+        it 'deletes the mbox' do
+          expect(File).to have_received(:unlink).with(mbox_pathname)
+        end
+      end
+
+      context "when the imap has no version" do
+        let(:data) { data = imap_data(serialized_uids); data.delete(:version); data }
+        let(:imap_content) { data.to_json }
+
+        it 'deletes the mbox' do
+          expect(File).to have_received(:unlink).with(mbox_pathname)
+        end
+      end
+
+      context 'when the imap is acceptable' do
+        it "doesn't delete the mbox" do
+          expect(File).to_not have_received(:unlink).with(mbox_pathname)
         end
       end
     end
-  end
-
-  def imap_data(uids)
-    {version: 1, uids: uids}
   end
 
   context '#uids' do
