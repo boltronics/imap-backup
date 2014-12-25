@@ -44,7 +44,7 @@ describe Email::Mboxrd::Message do
       expect(subject.to_serialized).to start_with('From ' + from + ' ' + date.asctime + "\n")
     end
 
-    context "with 'From' at the beginning of the message" do
+    context "with 'From ' at the beginning of the message" do
       let(:cloned_message_body) { "From at the beginning of the message\n" }
 
       it "replaces existing 'From ' with '>From '" do
@@ -52,7 +52,7 @@ describe Email::Mboxrd::Message do
       end
     end
 
-    context "with 'From' at the beginning of another line" do
+    context "with 'From ' at the beginning of another line" do
       it "replaces existing 'From ' with '>From '" do
         expect(subject.to_serialized).to include("\n>From at the beginning of the line")
       end
