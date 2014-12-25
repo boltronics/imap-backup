@@ -2,7 +2,9 @@
 require 'spec_helper'
 
 describe Imap::Backup::Account::Folder do
-  let(:imap) { double('Net::IMAP', :examine => nil) }
+  let(:imap) { double('Net::IMAP', :examine => nil, :responses => responses) }
+  let(:responses) { {'UIDVALIDITY' => [uid_validity]} }
+  let(:uid_validity) { 999 }
   let(:connection) { double('Imap::Backup::Account::Connection', :imap => imap) }
   let(:missing_mailbox_data) { double('Data', :text => "Unknown Mailbox: #{folder_name}") }
   let(:missing_mailbox_response) { double('Response', :data => missing_mailbox_data) }
@@ -11,6 +13,12 @@ describe Imap::Backup::Account::Folder do
 
   subject { described_class.new(connection, folder_name) }
 
+  shared_examples 'uid_validity' do
+    it 'records uid_validity' do
+      expect(subject.uid_validity).to eq(uid_validity)
+    end
+  end
+
   context '#uids' do
     let(:uids) { %w(5678 123) }
 
@@ -18,6 +26,12 @@ describe Imap::Backup::Account::Folder do
 
     it 'lists available messages' do
       expect(subject.uids).to eq(uids.reverse)
+    end
+
+    context 'uid_validity' do
+      include_examples 'uid_validity' do
+        before { subject.uids }
+      end
     end
 
     context 'with missing mailboxes' do
@@ -37,6 +51,12 @@ describe Imap::Backup::Account::Folder do
 
     it 'returns the message' do
       expect(subject.fetch(123)).to eq(message)
+    end
+
+    context 'uid_validity' do
+      include_examples 'uid_validity' do
+        before { subject.fetch(123) }
+      end
     end
 
     context "if the mailbox doesn't exist" do
@@ -65,7 +85,7 @@ describe Imap::Backup::Account::Folder do
     let(:response) { double('Response', data: data) }
     let(:data) { double('Data', code: code) }
     let(:code) { double('Code', data: ids.join(' ')) }
-    let(:ids) { [123, uid] }
+    let(:ids) { [uid_validity, uid] }
     let(:uid) { 456 }
 
     before { allow(imap).to receive(:append).and_return(response) }
@@ -78,6 +98,10 @@ describe Imap::Backup::Account::Folder do
 
     it 'returns the new uid' do
       expect(@result).to eq(uid)
+    end
+
+    context 'uid_validity' do
+      include_examples 'uid_validity'
     end
   end
 end
