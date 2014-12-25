@@ -29,7 +29,7 @@ RSpec.describe 'backup', type: :feature do
   it 'records IMAP ids' do
     connection.run_backup
 
-    expect(read_inbox_imap).to match(/"uids":\[\d+,\d+\]/)
+    expect(inbox_imap_parsed[:uids]).to eq([1, 2])
   end
 
   context 'when no local version is found' do

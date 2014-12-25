@@ -39,9 +39,13 @@ Subject: #{subject}
     File.read(inbox_imap_path)
   end
 
+  def inbox_imap_parsed
+    JSON.parse(read_inbox_imap, :symbolize_names => true)
+  end
+
   def load_or_create_imap
     if File.exist?(inbox_imap_path)
-      JSON.parse(read_inbox_imap, :symbolize_names => true)
+      inbox_imap_parsed
     else
       {version: 1, uids: []}
     end
