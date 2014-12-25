@@ -8,13 +8,16 @@ module Imap::Backup
   class Serializer::Mbox < Serializer::Base
     CURRENT_VERSION = 1
 
+    attr_reader :prepared
+
     def initialize(path, folder)
       super
-      create_containing_directory
-      check_files
+      @uids = nil
+      @prepared = false
     end
 
     def uids
+      prepare
       return @uids if @uids
 
       @uids = []
@@ -26,6 +29,7 @@ module Imap::Backup
     end
 
     def save(uid, message)
+      prepare
       uid = uid.to_i
       if uids.include?(uid)
         Imap::Backup.logger.debug "[#{folder}] message #{uid} already downloaded - skipping"
@@ -48,12 +52,14 @@ module Imap::Backup
     end
 
     def load(uid)
+      prepare
       message_index = uids.find_index(uid)
       return nil if message_index.nil?
       load_nth(message_index)
     end
 
     def update_uid(old, new)
+      prepare
       index = uids.find_index(old.to_i)
       return if index.nil?
       uids[index] = new.to_i
@@ -61,6 +67,13 @@ module Imap::Backup
     end
 
     private
+
+    def prepare
+      return if prepared
+      create_containing_directory
+      check_files
+      @prepared = true
+    end
 
     def create_containing_directory
       mbox_relative_path = File.dirname(mbox_relative_pathname)
