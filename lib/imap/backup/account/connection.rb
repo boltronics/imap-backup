@@ -40,12 +40,14 @@ module Imap::Backup
       imap
       each_folder do |folder, serializer|
         Imap::Backup.logger.debug "[#{folder.name}] running backup"
+        serializer.uid_validity = folder.uid_validity
         Downloader.new(folder, serializer).run
       end
     end
 
     def restore
       each_folder do |folder, serializer|
+        serializer.uid_validity = folder.uid_validity
         Uploader.new(folder, serializer).run
       end
     end

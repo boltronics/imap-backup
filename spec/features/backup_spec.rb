@@ -32,6 +32,12 @@ RSpec.describe 'backup', type: :feature do
     expect(inbox_imap_parsed[:uids]).to eq([1, 2])
   end
 
+  it 'records folder UID validity' do
+    connection.run_backup
+
+    expect(inbox_imap_parsed[:uid_validity]).to eq(1)
+  end
+
   context 'when no local version is found' do
     before do
       File.open(inbox_imap_path, 'w') { |f| f.write 'old format imap' }

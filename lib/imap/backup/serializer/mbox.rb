@@ -9,6 +9,7 @@ module Imap::Backup
     CURRENT_VERSION = 1
 
     attr_reader :prepared
+    attr_accessor :uid_validity
 
     def initialize(path, folder)
       super
@@ -85,11 +86,11 @@ module Imap::Backup
       imap = load_imap
       delete =
         case
+        when (not mbox_exist?)
+          true
         when imap.nil?
           true
         when imap[:version] != CURRENT_VERSION
-          true
-        when (not mbox_exist?)
           true
         when (not imap.has_key?(:uids))
           true
@@ -118,6 +119,7 @@ module Imap::Backup
       imap_data = {
         version: CURRENT_VERSION,
         uids: uids,
+        uid_validity: uid_validity,
       }
       content = imap_data.to_json
       File.open(imap_pathname, 'w') { |f| f.write content }

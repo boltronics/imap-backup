@@ -3,8 +3,8 @@
 require 'spec_helper'
 
 describe Imap::Backup::Serializer::Mbox do
-  def imap_data(uids)
-    {version: 1, uids: uids}
+  def imap_data(uid_validity, uids)
+    {version: 1, uids: uids, uid_validity: uid_validity}
   end
 
   let(:stat) { double('File::Stat', :mode => 0700) }
@@ -16,7 +16,8 @@ describe Imap::Backup::Serializer::Mbox do
   let(:imap_pathname) { File.join(base_path, imap_folder + '.imap') }
   let(:imap_exists) { true }
   let(:serialized_uids) { [3, 2, 1] }
-  let(:imap_content) { imap_data(serialized_uids).to_json }
+  let(:imap_content) { imap_data(uid_validity, serialized_uids).to_json }
+  let(:uid_validity)  { 555 }
 
   subject { described_class.new(base_path, imap_folder) }
 
@@ -66,7 +67,7 @@ describe Imap::Backup::Serializer::Mbox do
       end
 
       context "when the imap has no version" do
-        let(:data) { data = imap_data(serialized_uids); data.delete(:version); data }
+        let(:data) { data = imap_data(uid_validity, serialized_uids); data.delete(:version); data }
         let(:imap_content) { data.to_json }
 
         it 'deletes the mbox' do
@@ -79,6 +80,14 @@ describe Imap::Backup::Serializer::Mbox do
           expect(File).to_not have_received(:unlink).with(mbox_pathname)
         end
       end
+    end
+  end
+
+  context '#uid_validity=' do
+    before { subject.uid_validity = uid_validity }
+
+    it 'set uid_validity' do
+      expect(subject.uid_validity).to eq(uid_validity)
     end
   end
 
@@ -107,7 +116,7 @@ describe Imap::Backup::Serializer::Mbox do
     let(:mbox_formatted_message) { 'message in mbox format' }
     let(:new_uid) { 999 }
     let(:new_uids) { serialized_uids + [new_uid] }
-    let(:new_content) { imap_data(new_uids).to_json }
+    let(:new_content) { imap_data(uid_validity, new_uids).to_json }
     let(:message) { double('Email::Mboxrd::Message', to_serialized: mbox_formatted_message) }
     let(:serialized) { "The\nemail\n" }
     let(:mbox_file) { double('File - mbox', :write => nil, :close => nil) }
@@ -117,6 +126,7 @@ describe Imap::Backup::Serializer::Mbox do
       allow(Email::Mboxrd::Message).to receive(:new).and_return(message)
       allow(File).to receive(:open).with(mbox_pathname, 'ab').and_return(mbox_file)
       allow(File).to receive(:open).with(imap_pathname, 'w').and_yield(imap_file)
+      subject.uid_validity = uid_validity
     end
 
     it 'saves the message to the mbox' do
@@ -191,11 +201,12 @@ describe Imap::Backup::Serializer::Mbox do
     let(:serialized_uids) { [8, old_uid] }
     let(:new_uid) { 99 }
     let(:new_uids) { [8, new_uid] }
-    let(:new_content) { imap_data(new_uids).to_json }
+    let(:new_content) { imap_data(uid_validity, new_uids).to_json }
     let(:imap_file) { double('File - imap', write: nil, close: nil) }
 
     before do
       allow(File).to receive(:open).with(imap_pathname, 'w').and_yield(imap_file)
+      subject.uid_validity = uid_validity
     end
 
     before { subject.update_uid(old_uid, new_uid) }

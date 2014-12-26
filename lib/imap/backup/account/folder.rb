@@ -11,13 +11,13 @@ module Imap::Backup
 
     attr_reader :connection
     attr_reader :name
-    attr_reader :uid_validity
 
     delegate imap: :connection
 
     def initialize(connection, name)
       @connection = connection
       @name = name
+      @uid_validity = nil
     end
 
     def folder
@@ -45,6 +45,12 @@ module Imap::Backup
     def append(message)
       response = imap.append(name, message.to_s, nil, message.date)
       extract_uid(response)
+    end
+
+    def uid_validity
+      return @uid_validity unless @uid_validity.nil?
+      examine
+      @uid_validity
     end
 
     private
