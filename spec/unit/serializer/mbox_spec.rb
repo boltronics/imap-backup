@@ -83,14 +83,6 @@ describe Imap::Backup::Serializer::Mbox do
     end
   end
 
-  context '#uid_validity=' do
-    before { subject.uid_validity = uid_validity }
-
-    it 'set uid_validity' do
-      expect(subject.uid_validity).to eq(uid_validity)
-    end
-  end
-
   context '#uids' do
     context 'file setup' do
       include_examples 'file setup' do
@@ -220,6 +212,38 @@ describe Imap::Backup::Serializer::Mbox do
 
       it 'does nothing' do
         expect(imap_file).to_not have_received(:write)
+      end
+    end
+  end
+
+  context '#update_uid_validity' do
+    before { subject.uid_validity = uid_validity }
+
+    it 'loads the value from the imap file'
+
+    context "when a backup doesn't exist" do
+      it 'does nothing'
+    end
+
+    context 'when the value is the same' do
+      it 'does nothing'
+    end
+
+    context "when the value changes" do
+      it 'saves a blank mbox file' do
+        expect(mbox_file).to have_received(:write).with(new_content)
+      end
+
+      it 'saves a new imap file' do
+        expect(imap_file).to have_received(:write).with(new_content)
+      end
+
+      it 'renames the mbox file'
+      it 'renames the imap file'
+      it 'returns the new name'
+
+      context 'when the rename causes a clash' do
+        it 'adds digits until it finds a unique name'
       end
     end
   end

@@ -12,43 +12,53 @@ Subject: #{subject}
     EOT
   end
 
-  def write_backup_email(msg)
-    add_backup_uid msg[:uid]
-    File.open(inbox_mbox_path, 'a') { |f| f.write message_as_mbox_entry(msg) }
+  def write_backup_email(name, msg)
+    add_backup_uid name, msg[:uid]
+    File.open(mbox_path(name), 'a') { |f| f.write message_as_mbox_entry(msg) }
   end
 
-  def add_backup_uid(uid)
-    imap = load_or_create_imap
+  def add_backup_uid(name, uid)
+    imap = load_or_create_imap(name)
     imap[:uids] << uid
-    File.open(inbox_imap_path, 'w') { |f| f.puts imap.to_json }
+    save_imap imap
   end
 
-  def inbox_mbox_path
-    File.join(local_backup_path, 'INBOX.mbox')
+  def set_uid_validity(name, uid_validity)
+    imap = load_or_create_imap(name)
+    imap[:uid_validity] = uid_validity
+    save_imap imap
   end
 
-  def inbox_imap_path
-    File.join(local_backup_path, 'INBOX.imap')
+  def mbox_content(name)
+    File.read(mbox_path(name))
   end
 
-  def inbox_mbox_content
-    File.read(inbox_mbox_path)
+  def imap_content(name)
+    File.read(imap_path(name))
   end
 
-  def read_inbox_imap
-    File.read(inbox_imap_path)
+  def mbox_path(name)
+    File.join(local_backup_path, name + '.mbox')
   end
 
-  def inbox_imap_parsed
-    JSON.parse(read_inbox_imap, :symbolize_names => true)
+  def imap_path(name)
+    File.join(local_backup_path, name + '.imap')
   end
 
-  def load_or_create_imap
-    if File.exist?(inbox_imap_path)
-      inbox_imap_parsed
+  def imap_parsed(name)
+    JSON.parse(imap_content(name), :symbolize_names => true)
+  end
+
+  def load_or_create_imap(name)
+    if File.exist?(imap_path(name))
+      imap_parsed(name)
     else
       {version: 1, uids: []}
     end
+  end
+
+  def save_imap(imap)
+    File.open(imap_path('INBOX'), 'w') { |f| f.puts imap.to_json }
   end
 end
 

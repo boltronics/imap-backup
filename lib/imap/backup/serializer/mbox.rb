@@ -9,12 +9,12 @@ module Imap::Backup
     CURRENT_VERSION = 1
 
     attr_reader :prepared
-    attr_accessor :uid_validity
 
     def initialize(path, folder)
       super
       @uids = nil
       @prepared = false
+      @uid_validity = nil
     end
 
     def uids
@@ -65,6 +65,18 @@ module Imap::Backup
       return if index.nil?
       uids[index] = new.to_i
       write_imap_file
+    end
+
+    def update_uid_validity(value)
+      case
+      when uid_validity.nil?
+        @uid_validity = value
+      when uid_validity == value
+        # NOOP
+      else
+        # rename files
+        # return new name
+      end
     end
 
     private
@@ -175,6 +187,16 @@ module Imap::Backup
           e.yield lines.join("\n") + "\n" if lines.count > 0
         end
       end
+    end
+
+    def uid_validity
+      prepare
+      return @uid_validity if @uid_validity
+
+      imap = load_imap
+      return nil if imap.nil?
+
+      @uid_validity = imap[:uid_validity]
     end
   end
 end
