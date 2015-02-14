@@ -2,4 +2,4 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'rims', github: 'joeyates/rims', branch: 'uidplus_extension'
+gem 'rims', github: 'y10k/rims'
