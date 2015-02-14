@@ -4,11 +4,15 @@ require 'tmpdir'
 require 'yaml'
 
 module TestEmailServerHelpers
+  def project_root
+    File.expand_path('../..', File.dirname(__FILE__))
+  end
+
   # This file holds configuration
   # and transient data (PID and temp directory)
   # Keys are Symbols
   def config_filename
-    'rims.yaml'
+    File.join(project_root, 'rims.yaml')
   end
 
   def default_config
@@ -37,33 +41,20 @@ module TestEmailServerHelpers
     FileUtils.rm_rf @config.delete(:directory)
   end
 
-  def fork_server
+  def start_server
     pid = fork do
-      SimpleCov.at_exit { }
-      run_server
+      SimpleCov.at_exit { } if defined? SimpleCov
+      RIMS::Cmd.run_cmd(['daemon', 'start', "-f#{config_filename}"])
     end
-    @config[:pid] = pid
-  end
-
-  def run_server
-    RIMS::Cmd.run_cmd([
-      'server',
-      '--base-dir=' + @config[:directory],
-      '--username=user@example.com',
-      '--password=password',
-      "--ip-port=#{@config[:port]}",
-    ])
+    Process.waitpid pid
   end
 
   def stop_server
-    pid = @config.delete(:pid)
-    fork do
-      SimpleCov.at_exit { }
-      Process.kill('TERM', pid)
+    pid = fork do
+      SimpleCov.at_exit { } if defined? SimpleCov
+      RIMS::Cmd.run_cmd(['daemon', 'stop', "-f#{config_filename}"])
     end
     Process.waitpid pid
-  rescue Errno::ESRCH
-    # It doesn't matter if the process was already dead
   end
 end
 
@@ -75,17 +66,17 @@ namespace :test do
     task :start do
       load_config
       create_working_directory
-      fork_server
       save_config
-      log = File.join(@config[:directory], 'imap.log')
+      start_server
+      log = File.join(@config[:base_dir], 'imap.log')
       sleep 0.01 while not File.exist?(log)
-      sleep 0.1 while not File.read(log).include?('open server')
+      sleep 0.1 while not File.read(log).include?('start server')
     end
 
     desc 'Stop the email server process'
     task :stop do
-      load_config
       stop_server
+      load_config
       delete_working_directory
       save_config
     end
