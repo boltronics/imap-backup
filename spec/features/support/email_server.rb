@@ -12,8 +12,9 @@ module EmailServerHelpers
   def send_email(options)
     subject = options[:subject]
     body = options[:body]
+    connection = fixture('connection')
     message = <<-EOT
-From: #{username}
+From: #{connection[:username]}
 Subject: #{subject}
 
 #{body}
@@ -37,14 +38,12 @@ Subject: #{subject}
     end
   end
 
-  def username
-    'user@example.com'
-  end
-
   def imap
     return @imap if @imap
-    @imap = Net::IMAP.new('localhost', port: '1430')
-    @imap.login(username, 'password')
+    connection = fixture('connection')
+    port = connection[:server_options][:port]
+    @imap = Net::IMAP.new(connection[:server], port: port)
+    @imap.login(connection[:username], connection[:password])
     @imap
   end
 end

@@ -3,6 +3,8 @@ require 'rims'
 require 'tmpdir'
 require 'yaml'
 
+require_relative '../../spec/support/fixtures'
+
 module TestEmailServerHelpers
   def project_root
     File.expand_path('../..', File.dirname(__FILE__))
@@ -16,29 +18,36 @@ module TestEmailServerHelpers
   end
 
   def default_config
+    connection = fixture('connection')
+    port = connection[:server_options][:port]
     {
-      port: 1360,
+      imap_port: port,
+      imap_host: connection[:server],
+      username: connection[:username],
+      password: connection[:password],
     }
   end
 
   def load_config
     if File.exist?(config_filename)
       @config = YAML.load(File.read(config_filename))
+      @config = @config.merge(default_config)
     else
       @config = default_config
     end
   end
 
+  def create_working_directory
+    @config[:base_dir] = Dir.mktmpdir(nil, 'tmp')
+  end
+
   def save_config
     File.open(config_filename, 'w') { |f| f.write @config.to_yaml }
   end
-  
-  def create_working_directory
-    @config[:directory] = Dir.mktmpdir(nil, 'tmp')
-  end
 
   def delete_working_directory
-    FileUtils.rm_rf @config.delete(:directory)
+    base_dir = @config.delete(:base_dir)
+    FileUtils.rm_rf base_dir
   end
 
   def start_server
