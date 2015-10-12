@@ -1,36 +1,30 @@
 # encoding: utf-8
-require 'csv'
 require 'email/mboxrd/message'
 
 module Imap::Backup
-  module Serializer; end
-
-  class Serializer::Mbox < Serializer::Base
+  module Serializer
     CURRENT_VERSION = 1
+  end
 
-    attr_reader :prepared
+  class Serializer::MboxStore
+    attr_reader :path
+    attr_reader :folder
+    attr_writer :uid_validity
+    attr_reader :uids
 
     def initialize(path, folder)
-      super
-      @uids = nil
-      @prepared = false
+      @path = path
+      @folder = folder
+      @loaded = false
       @uid_validity = nil
-    end
-
-    def uids
-      prepare
-      return @uids if @uids
-
       @uids = []
-
-      imap = load_imap
-      return @uids if imap.nil?
-
-      @uids = imap[:uids].map(&:to_i)
     end
 
-    def save(uid, message)
-      prepare
+    def exist?
+      mbox_exist? && imap_exist?
+    end
+
+    def add(uid, message)
       uid = uid.to_i
       if uids.include?(uid)
         Imap::Backup.logger.debug "[#{folder}] message #{uid} already downloaded - skipping"
@@ -53,114 +47,100 @@ module Imap::Backup
     end
 
     def load(uid)
-      prepare
       message_index = uids.find_index(uid)
       return nil if message_index.nil?
       load_nth(message_index)
     end
 
+    def reset
+      @uids = []
+      delete_files
+      write_imap_file
+      write_blank_mbox_file
+    end
+
+    def relative_path
+      File.dirname(folder)
+    end
+
     def update_uid(old, new)
-      prepare
       index = uids.find_index(old.to_i)
       return if index.nil?
       uids[index] = new.to_i
       write_imap_file
     end
 
-    def update_uid_validity(value)
-      case
-      when uid_validity.nil?
-        @uid_validity = value
-      when uid_validity == value
-        # NOOP
-      else
-        # rename files
-        # return new name
-      end
+    def uid_validity
+      return @uid_validity if @loaded
+
+      do_load
+
+      @uid_validity
+    end
+
+    def uids
+      return @uids if @loaded
+
+      do_load
+
+      @uids
+    end
+
+    def rename(new_name)
+      new_mbox_pathname = absolute_path(new_name + '.mbox')
+      new_imap_pathname = absolute_path(new_name + '.imap')
+      File.rename(mbox_pathname, new_mbox_pathname)
+      File.rename(imap_pathname, new_imap_pathname)
+      @folder = new_name
     end
 
     private
 
-    def prepare
-      return if prepared
-      create_containing_directory
-      check_files
-      @prepared = true
+    def do_load
+      if !exist?
+        reset
+      end
+
+      if !imap_looks_like_json?
+        reset
+      end
+
+      imap = nil
+      begin
+        imap = JSON.parse(File.read(imap_pathname), :symbolize_names => true)
+      rescue JSON::ParserError
+        reset
+        do_load
+        return
+      end
+
+      if imap[:version] != Serializer::CURRENT_VERSION
+        reset
+        do_load
+        return
+      end
+
+      if not imap.has_key?(:uids)
+        reset
+        do_load
+        return
+      end
+
+      if not imap[:uids].is_a?(Array)
+        reset
+        do_load
+        return
+      end
+
+      @uid_validity = imap[:uid_validity]
+      @uids = imap[:uids].map(&:to_i)
+      @loaded = true
     end
 
-    def create_containing_directory
-      mbox_relative_path = File.dirname(mbox_relative_pathname)
-      return if mbox_relative_path == '.'
-      Utils.make_folder(@path, mbox_relative_path, Serializer::DIRECTORY_PERMISSIONS)
-    end
-
-    def check_files
-      imap = load_imap
-      delete =
-        case
-        when (not mbox_exist?)
-          true
-        when imap.nil?
-          true
-        when imap[:version] != CURRENT_VERSION
-          true
-        when (not imap.has_key?(:uids))
-          true
-        when (not imap[:uids].is_a?(Array))
-          true
-        else
-          false
-        end
-      delete_files if delete
-    end
-
-    def load_imap
-      return nil unless imap_looks_like_json?
-      JSON.parse(File.read(imap_pathname), :symbolize_names => true)
-    rescue JSON::ParserError
-      nil
-    end
-
-    def imap_looks_like_json?
-      return false unless imap_exist?
-      content = File.read(imap_pathname)
-      content.start_with?('{')
-    end
-
-    def write_imap_file
-      imap_data = {
-        version: CURRENT_VERSION,
-        uids: uids,
-        uid_validity: uid_validity,
-      }
-      content = imap_data.to_json
-      File.open(imap_pathname, 'w') { |f| f.write content }
-    end
-
-    def delete_files
-      File.unlink(imap_pathname) if imap_exist?
-      File.unlink(mbox_pathname) if mbox_exist?
-    end
-
-    def mbox_exist?
-      File.exist?(mbox_pathname)
-    end
-
-    def imap_exist?
-      File.exist?(imap_pathname)
-    end
-
-    def mbox_relative_pathname
-      @folder + '.mbox'
-    end
-
-    def mbox_pathname
-      File.join(@path, mbox_relative_pathname)
-    end
-
-    def imap_pathname
-      filename = @folder + '.imap'
-      File.join(@path, filename)
+    def imap
+      return @imap if @iamp
+      do_load
+      @imap
     end
 
     def load_nth(index)
@@ -189,14 +169,119 @@ module Imap::Backup
       end
     end
 
-    def uid_validity
-      prepare
-      return @uid_validity if @uid_validity
+    def imap_looks_like_json?
+      return false unless imap_exist?
+      content = File.read(imap_pathname)
+      content.start_with?('{')
+    end
 
-      imap = load_imap
-      return nil if imap.nil?
+    def write_imap_file
+      imap_data = {
+        version: Serializer::CURRENT_VERSION,
+        uids: @uids,
+        uid_validity: @uid_validity,
+      }
+      content = imap_data.to_json
+      File.open(imap_pathname, 'w') { |f| f.write content }
+    end
 
-      @uid_validity = imap[:uid_validity]
+    def write_blank_mbox_file
+      File.open(mbox_pathname, 'w') { |f| f.write '' }
+    end
+
+    def delete_files
+      File.unlink(imap_pathname) if imap_exist?
+      File.unlink(mbox_pathname) if mbox_exist?
+    end
+
+    def mbox_exist?
+      File.exist?(mbox_pathname)
+    end
+
+    def imap_exist?
+      File.exist?(imap_pathname)
+    end
+
+    def absolute_path(relative_path)
+      File.join(@path, relative_path)
+    end
+
+    def mbox_pathname
+      absolute_path(folder + '.mbox')
+    end
+
+    def imap_pathname
+      absolute_path(folder + '.imap')
+    end
+  end
+
+  class Serializer::Mbox < Serializer::Base
+    attr_reader :prepared
+
+    def initialize(path, folder)
+      super
+      @store = nil
+    end
+
+    def uids
+      store.uids
+    end
+
+    def save(uid, message)
+      store.add(uid, message)
+    end
+
+    def load(uid)
+      store.load(uid)
+    end
+
+    def update_uid(old, new)
+      store.update_uid(old, new)
+    end
+
+    def set_uid_validity(value)
+      existing = store.uid_validity
+      case
+      when existing.nil?
+        store.uid_validity = value
+        store.reset
+      when existing == value
+        # NOOP
+      else
+        digit = 1
+        new_name = nil
+        loop do
+          new_name = folder + "." + digit.to_s
+          test_store = Serializer::MboxStore.new(path, new_name)
+          break if !test_store.exist?
+          digit += 1
+        end
+        store.rename new_name
+        @store = nil
+        store.uid_validity = value
+        store.reset
+        new_name
+      end
+    end
+
+    private
+
+    def store
+      return @store if @store
+      @store = Serializer::MboxStore.new(path, folder)
+      relative_path = @store.relative_path
+      create_containing_directory relative_path
+      @store
+    end
+
+    def create_containing_directory(relative_path)
+      full_path = File.expand_path(File.join(path, relative_path))
+      if !File.directory?(full_path)
+        Utils.make_folder(path, relative_path, Serializer::DIRECTORY_PERMISSIONS)
+      end
+      if Utils::stat(path) != Serializer::DIRECTORY_PERMISSIONS
+        FileUtils.chmod Serializer::DIRECTORY_PERMISSIONS, path
+      end
     end
   end
 end

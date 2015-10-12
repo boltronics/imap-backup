@@ -12,7 +12,7 @@ Subject: #{subject}
     EOT
   end
 
-  def write_backup_email(name, msg)
+  def backup_add_email(name, msg)
     add_backup_uid name, msg[:uid]
     File.open(mbox_path(name), 'a') { |f| f.write message_as_mbox_entry(msg) }
   end
@@ -23,7 +23,7 @@ Subject: #{subject}
     save_imap imap
   end
 
-  def set_uid_validity(name, uid_validity)
+  def backup_set_uid_validity(name, uid_validity)
     imap = load_or_create_imap(name)
     imap[:uid_validity] = uid_validity
     save_imap imap
@@ -57,8 +57,8 @@ Subject: #{subject}
     end
   end
 
-  def save_imap(imap)
-    File.open(imap_path('INBOX'), 'w') { |f| f.puts imap.to_json }
+  def save_imap(folder, imap)
+    File.open(imap_path(folder), 'w') { |f| f.puts imap.to_json }
   end
 end
 

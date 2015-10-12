@@ -9,8 +9,8 @@ RSpec.describe 'restore', type: :feature do
 
   before do
     start_email_server
-    write_backup_email 'INBOX', msg1
-    write_backup_email 'INBOX', msg2
+    backup_add_email 'INBOX', msg1
+    backup_add_email 'INBOX', msg2
 
     connection.restore
   end

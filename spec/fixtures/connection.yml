@@ -3,6 +3,6 @@
 :password: 'password'
 :folders:
   -
-    :name: 'INBOX'
+    :name: 'stuff'
 :server_options:
   :port: 1360

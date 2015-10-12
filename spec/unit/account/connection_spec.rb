@@ -99,7 +99,7 @@ module Imap::Backup
 
     context '#run_backup' do
       let(:folder) { instance_double(Account::Folder, :name => 'foo', :uid_validity => 1) }
-      let(:serializer) { instance_double(Serializer::Mbox, :uid_validity= => nil) }
+      let(:serializer) { instance_double(Serializer::Mbox, :set_uid_validity => nil) }
       let(:downloader) { double('downloader', :run => nil) }
 
       before do

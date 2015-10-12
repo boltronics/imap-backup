@@ -9,7 +9,7 @@ module EmailServerHelpers
     Rake.application['test:email_server:stop'].execute
   end
 
-  def send_email(options)
+  def send_email(folder, options)
     subject = options[:subject]
     body = options[:body]
     connection = fixture('connection')
@@ -20,20 +20,33 @@ Subject: #{subject}
 #{body}
     EOT
 
-    imap.append(folder_name, message, nil, nil)
+    imap.append(folder, message, nil, nil)
   end
 
-  def folder_name
-    'INBOX'
+  def server_create_folder(folder)
+    result = imap.create(folder)
   end
 
-  def server_uids
-    imap.examine(folder_name)
+  def server_rename_folder(from, to)
+    result = imap.rename(from, to)
+  end
+
+  def examine(folder)
+    imap.examine(folder)
+  end
+
+  def uid_validity(folder)
+    examine(folder)
+    imap.responses["UIDVALIDITY"][0]
+  end
+
+  def server_uids(folder)
+    examine(folder)
     imap.uid_search(['ALL']).sort
   end
 
-  def server_messages
-    server_uids.map do |uid|
+  def server_messages(folder)
+    server_uids(folder).map do |uid|
       imap.uid_fetch([uid], REQUESTED_ATTRIBUTES)[0][1]
     end
   end
